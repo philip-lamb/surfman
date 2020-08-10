@@ -296,6 +296,28 @@ impl Device {
         let mut next_context_id = CREATE_CONTEXT_MUTEX.lock().unwrap();
         let hidden_window = HiddenWindow::new();
 
+        {
+            // Set the pixel format on the hidden window DC to the
+            // same as the native DC's pixel format.
+            let native_dc = wglGetCurrentDC();
+            let pixel_format = wingdi::GetPixelFormat(native_dc);
+            assert_ne!(pixel_format, 0);
+            let mut pixel_format_descriptor: PIXELFORMATDESCRIPTOR = mem::zeroed();
+            let pixel_format_count =
+                wingdi::DescribePixelFormat(native_dc,
+                                            pixel_format,
+                                            mem::size_of::<PIXELFORMATDESCRIPTOR>() as UINT,
+                                            &mut pixel_format_descriptor);
+            assert_ne!(pixel_format_count, 0);
+            
+            let hidden_window_dc = hidden_window.get_dc();
+            let dc = hidden_window_dc.dc;
+            let pixel_format = wingdi::ChoosePixelFormat(dc, &pixel_format_descriptor);
+            assert_ne!(pixel_format, 0);
+            let ok = wingdi::SetPixelFormat(dc, pixel_format, &pixel_format_descriptor);
+            assert_ne!(ok, FALSE);    
+        }
+
         // Load the GL functions.
         let gl = {
             let hidden_window_dc = hidden_window.get_dc();
