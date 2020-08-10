@@ -333,7 +333,7 @@ impl Device {
             id: *next_context_id,
             gl,
             hidden_window: Some(hidden_window),
-            framebuffer: Framebuffer::External(()),
+            framebuffer: Framebuffer::None,
             status: ContextStatus::Referenced,
         };
         next_context_id.0 += 1;
