@@ -299,6 +299,7 @@ impl Device {
         {
             // Set the pixel format on the hidden window DC to the
             // same as the native DC's pixel format.
+
             let native_dc = wglGetCurrentDC();
             let pixel_format = wingdi::GetPixelFormat(native_dc);
             assert_ne!(pixel_format, 0);
@@ -309,13 +310,25 @@ impl Device {
                                             mem::size_of::<PIXELFORMATDESCRIPTOR>() as UINT,
                                             &mut pixel_format_descriptor);
             assert_ne!(pixel_format_count, 0);
+
+			let mut context_attributes = ContextAttributes {
+				version: GLVersion::new(3, 2),
+				flags: ContextAttributeFlags::empty(),
+			};
+			if pixel_format_descriptor.cDepthBits > 0 {
+				context_attributes.flags |= ContextAttributeFlags::DEPTH;
+			}
+			if pixel_format_descriptor.cAlphaBits > 0 {
+				context_attributes.flags |= ContextAttributeFlags::ALPHA;
+			}
+			if pixel_format_descriptor.cStencilBits > 0 {
+				context_attributes.flags |= ContextAttributeFlags::STENCIL;
+			}
+			let descriptor = self.create_context_descriptor(&context_attributes)?;
             
-            let hidden_window_dc = hidden_window.get_dc();
+			let hidden_window_dc = hidden_window.get_dc();
             let dc = hidden_window_dc.dc;
-            let pixel_format = wingdi::ChoosePixelFormat(dc, &pixel_format_descriptor);
-            assert_ne!(pixel_format, 0);
-            let ok = wingdi::SetPixelFormat(dc, pixel_format, &pixel_format_descriptor);
-            assert_ne!(ok, FALSE);    
+            set_dc_pixel_format(dc, descriptor.pixel_format);   
         }
 
         // Load the GL functions.
