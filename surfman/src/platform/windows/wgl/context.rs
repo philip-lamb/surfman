@@ -294,13 +294,13 @@ impl Device {
     pub unsafe fn create_context_from_native_context(&self, native_context: NativeContext)
                                                      -> Result<Context, Error> {
         let mut next_context_id = CREATE_CONTEXT_MUTEX.lock().unwrap();
+		let native_dc = wglGetCurrentDC();
         let hidden_window = HiddenWindow::new();
 
         {
             // Set the pixel format on the hidden window DC to the
             // same as the native DC's pixel format.
 
-            let native_dc = wglGetCurrentDC();
             let pixel_format = wingdi::GetPixelFormat(native_dc);
             assert_ne!(pixel_format, 0);
             let mut pixel_format_descriptor: PIXELFORMATDESCRIPTOR = mem::zeroed();
@@ -333,10 +333,8 @@ impl Device {
 
         // Load the GL functions.
         let gl = {
-            let hidden_window_dc = hidden_window.get_dc();
-            let dc = hidden_window_dc.dc;
             let _guard = CurrentContextGuard::new();
-            let ok = wglMakeCurrent(dc, native_context.0);
+            let ok = wglMakeCurrent(native_dc, native_context.0);
             assert_ne!(ok, FALSE);
             Gl::load_with(get_proc_address)
         };
